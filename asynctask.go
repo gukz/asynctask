@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"reflect"
 	"sync"
 	"time"
 )
@@ -137,9 +138,24 @@ func (a *AsyncTask) consume(message []byte, errorMsg chan interface{}) {
 	if err := decode(message, &msg); err != nil {
 		panic(err)
 	}
-	if _, ok := handlers[msg.Name]; ok {
+	if handler, ok := handlers[msg.Name]; ok {
 		// 反射调用
-		fmt.Println("Handle", msg)
+		handlerFunc := reflect.ValueOf(handler)
+		if handlerFunc.Kind() != reflect.Func {
+			panic(errors.New("Invalid handler type"))
+		}
+		params := make([]reflect.Value, len(msg.Args))
+		for i, arg := range msg.Args {
+			val, err := ReflectValue(arg.Type, arg.Value)
+			if err != nil {
+				panic(err)
+			}
+			params[i] = val
+		}
+		result := handlerFunc.Call(params)
+		if len(result) == 0 {
+			panic(errors.New("The first result of your handler must be error"))
+		}
 	} else {
 		err := a.Produce(&msg)
 		if err != nil {
