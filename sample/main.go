@@ -4,28 +4,34 @@ import (
 	"fmt"
 	"github.com/gukz/asynctask"
 	_ "github.com/gukz/asynctask/backend/redis"
+	_ "github.com/gukz/asynctask/broker/redis"
 	"time"
 )
 
 func init() {
 	asynctask.RegisteHandler(map[string]interface{}{
-		"handler1": func(name string, a int64) error { fmt.Println(name, a); return nil },
+		"test_func": func(name string, a int64) error { fmt.Println("handling message", name, a, "\n"); return nil },
 	})
 }
 
 func main() {
 	queue := "async_queue"
-	async := &asynctask.AsyncTask{}
-	async.Init(queue, "redis")
+	worker, _ := asynctask.NewWorker("redis", "redis", queue)
+	var a = 1
 	go func() {
-		for i := 0; i < 5; i++ {
-			msg := asynctask.NewMessage("handler1", []asynctask.Arg{{Name: "name1", Type: "string", Value: "hello"}, {Name: "age", Type: "int64", Value: i}})
-			if err := async.Produce(msg); err != nil {
+		for {
+			msg := asynctask.NewMessage(
+				"test_func", []asynctask.Arg{
+					{Name: "name1", Type: "string", Value: "hello"},
+					{Name: "age", Type: "int64", Value: a},
+				})
+			a += 1
+			if err := worker.GetProducer().Send(msg); err != nil {
 				fmt.Println(err, msg)
 			}
-			time.Sleep(1 * time.Second)
+			time.Sleep(2 * time.Second)
 		}
 	}()
 
-	async.Serve(10)
+	worker.Serve(10)
 }
