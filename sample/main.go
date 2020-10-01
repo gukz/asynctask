@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/gukz/asynctask"
-	_ "github.com/gukz/asynctask/backend/redis"
-	_ "github.com/gukz/asynctask/broker/redis"
+	rBackend "github.com/gukz/asynctask/backend/redis"
+	rBroker "github.com/gukz/asynctask/broker/redis"
 	"time"
 )
 
@@ -15,13 +15,18 @@ func init() {
 }
 
 func main() {
-	queue := "async_queue"
-	worker, _ := asynctask.NewWorker("redis", "redis", queue)
+	redisHost := "127.0.0.1:6379"
+	redisPassword := ""
+	redisDbNum := 0
+	queue := "Main_async_queue"
+	backend, _ := rBackend.NewBackend(redisHost, redisPassword, redisDbNum, "", 10*time.Minute)
+	broker, _ := rBroker.NewBroker(redisHost, redisPassword, redisDbNum)
+	worker, _ := asynctask.NewWorker(queue, broker, backend)
 	var a = 1
 	go func() {
 		for {
 			msg := asynctask.NewMessage(
-				"test_func", []asynctask.Arg{
+				"test_func", []asynctask.TypeValue{
 					{Name: "name1", Type: "string", Value: "hello"},
 					{Name: "age", Type: "int64", Value: a},
 				})

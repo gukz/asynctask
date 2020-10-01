@@ -4,22 +4,28 @@ import (
 	"github.com/gukz/asynctask"
 )
 
-func init() {
-	asynctask.RegisteBroker("amqp", func() asynctask.Broker { return &AmqpBroker{} })
+var _ asynctask.Broker = (*amqpBroker)(nil)
+
+type amqpBroker struct {
 }
 
-type AmqpBroker struct {
+func NewBroker() (asynctask.Broker, error) {
+	a := &amqpBroker{}
+	return a, nil
 }
 
-func (a *AmqpBroker) Init() error {
-	return nil
-}
-func (a *AmqpBroker) CheckHealth() bool {
+func (a *amqpBroker) CheckHealth() bool {
 	return false
 }
-func (a *AmqpBroker) GetMessage(queue string) []byte {
+
+func (a *amqpBroker) AckMessage(queue string, taskId string) error {
 	return nil
 }
-func (a *AmqpBroker) CreateMessage(queue string, data []byte) error {
+
+func (a *amqpBroker) PopMessage(queue string) []byte {
+	return nil
+}
+
+func (a *amqpBroker) PushMessage(queue string, data []byte) error {
 	return nil
 }

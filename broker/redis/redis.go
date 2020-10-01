@@ -1,36 +1,40 @@
 package redis
 
 import (
+	"fmt"
 	"github.com/go-redis/redis"
 	"github.com/gukz/asynctask"
 	"time"
 )
 
-func init() {
-	asynctask.RegisteBroker("redis", func() asynctask.Broker { return &RedisBroker{} })
-}
+var _ asynctask.Broker = (*redisBroker)(nil)
 
-type RedisBroker struct {
+type redisBroker struct {
 	redisclient *redis.Client
 }
 
-func (b *RedisBroker) Init() error {
-	host := "127.0.0.1:6379"
-	password := ""
-	dbNum := 0
+func NewBroker(host string, password string, dbNum int) (asynctask.Broker, error) {
+	b := &redisBroker{}
 	b.redisclient = redis.NewClient(&redis.Options{
 		Addr:     host,
 		Password: password,
 		DB:       dbNum,
 	})
 	_, err := b.redisclient.Ping().Result()
-	return err
+	return b, err
 }
-func (b *RedisBroker) CheckHealth() bool {
+
+func (b *redisBroker) CheckHealth() bool {
 	_, err := b.redisclient.Ping().Result()
 	return err == nil
 }
-func (b *RedisBroker) GetMessage(queue string) []byte {
+
+func (b *redisBroker) AckMessage(queue string, taskId string) error {
+	fmt.Printf("Ack taskId: %s in queue: %s", taskId, queue)
+	return nil
+}
+
+func (b *redisBroker) PopMessage(queue string) []byte {
 	if msg, err := b.redisclient.BLPop(2*time.Second, queue).Result(); err != nil {
 		if err != redis.Nil {
 			panic(err)
@@ -40,7 +44,8 @@ func (b *RedisBroker) GetMessage(queue string) []byte {
 	}
 	return nil
 }
-func (b *RedisBroker) CreateMessage(queue string, data []byte) error {
+
+func (b *redisBroker) PushMessage(queue string, data []byte) error {
 	res := b.redisclient.RPush(queue, string(data))
 	return res.Err()
 }

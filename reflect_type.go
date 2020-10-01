@@ -53,6 +53,24 @@ func ReflectValue(valueType string, value interface{}) (reflect.Value, error) {
 	}
 	return reflectValue(valueType, value)
 }
+
+func OriginalValue(data reflect.Value) (interface{}, error) {
+	switch data.Kind() {
+	case reflect.Bool:
+		return data.Bool(), nil
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return data.Int(), nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return data.Uint(), nil
+	case reflect.Float32, reflect.Float64:
+		return data.Float(), nil
+	case reflect.String:
+		return data.String(), nil
+	default:
+		return nil, typeError("Unknown", data)
+	}
+}
+
 func getBoolValue(valueType string, value interface{}) (bool, error) {
 	if boolValue, ok := value.(bool); ok {
 		return boolValue, nil
@@ -60,6 +78,7 @@ func getBoolValue(valueType string, value interface{}) (bool, error) {
 		return boolValue, typeError(valueType, value)
 	}
 }
+
 func getIntValue(valueType string, value interface{}) (int64, error) {
 	if strings.HasPrefix(fmt.Sprintf("%T", value), "json.Number") {
 		n, ok := value.(json.Number)
