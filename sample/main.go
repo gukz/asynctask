@@ -10,7 +10,9 @@ import (
 
 func init() {
 	asynctask.RegisteHandler(map[string]interface{}{
-		"test_func": func(name string, a int64) error { fmt.Println("handling message", name, a, "\n"); return nil },
+		"test_func": func(name string, a int64) (string, int64, error) {
+			return name + "is finished", a * a, nil
+		},
 	})
 }
 
@@ -21,7 +23,9 @@ func main() {
 	queue := "Main_async_queue"
 	backend, _ := rBackend.NewBackend(redisHost, redisPassword, redisDbNum, "", 10*time.Minute)
 	broker, _ := rBroker.NewBroker(redisHost, redisPassword, redisDbNum)
-	worker, _ := asynctask.NewWorker(queue, broker, backend)
+	asyncBase := asynctask.NewAsyncTask(queue, broker, backend)
+	worker := asyncBase.GetWorker()
+	producer := asyncBase.GetProducer()
 	var a = 1
 	go func() {
 		for {
@@ -31,10 +35,18 @@ func main() {
 					{Name: "age", Type: "int64", Value: a},
 				})
 			a += 1
-			if err := worker.GetProducer().Send(msg); err != nil {
+			if err := producer.Send(msg); err != nil {
 				fmt.Println(err, msg)
 			}
 			time.Sleep(2 * time.Second)
+			if res, err := producer.GetResult(msg.TaskId); err != nil {
+				fmt.Println(err, *res)
+			} else {
+				fmt.Println("\nResult: ")
+				for i := 0; i < len(res.ReturnValues); i++ {
+					fmt.Print(res.ReturnValues[i].Type, ": ", res.ReturnValues[i].Value, " ")
+				}
+			}
 		}
 	}()
 

@@ -34,6 +34,13 @@ func TypeValue2ReflectValue(data []TypeValue) []reflect.Value {
 	return res
 }
 
-func ReflectValue2TypeValue(reflectData []reflect.Value, data []TypeValue) {
+type ResultValue struct {
+	Type  string
+	Value interface{}
+}
 
+type Result struct {
+	ReturnValues []*ResultValue
+	HasError     bool
+	Error        string
 }

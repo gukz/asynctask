@@ -23,17 +23,7 @@ func RegisteHandler(h map[string]interface{}) {
 }
 
 type worker struct {
-	broker  Broker
-	backend Backend
-	queue   string
-}
-
-func NewWorker(queue string, broker Broker, backend Backend) (*worker, error) {
-	return &worker{queue: queue, broker: broker, backend: backend}, nil
-}
-
-func (t *worker) GetProducer() *Producer {
-	return &Producer{broker: t.broker, queue: t.queue}
+	*asyncBase
 }
 
 func (t *worker) consume(message []byte, errorMsg chan interface{}) {
@@ -47,21 +37,35 @@ func (t *worker) consume(message []byte, errorMsg chan interface{}) {
 	}()
 	msg := Message{Args: []TypeValue{}}
 	panicIf(decode(message, &msg))
-	t.broker.AckMessage(t.queue, msg.TaskId)
 	if handler, ok := handlers[msg.Name]; ok {
+		t.broker.AckMessage(t.queue, msg.TaskId)
+
 		handlerFunc := reflect.ValueOf(handler)
-		if handlerFunc.Kind() != reflect.Func {
-			panic(errors.New("Invalid handler type"))
-		}
 		params := TypeValue2ReflectValue(msg.Args)
-		result := handlerFunc.Call(params)
-		if len(result) == 0 {
-			panic(errors.New("The first result of your handler must be error"))
+		funcResult := handlerFunc.Call(params)
+		if len(funcResult) == 0 {
+			panicIf(errors.New("The last result of your handler must be error"))
 		}
-		panicIf(t.backend.SetResult(msg.TaskId, result))
-	} else {
-		// TODO: If this message is not recognize, we will throw back to queue
-		panicIf(t.GetProducer().Send(&msg))
+		result := &Result{}
+		// The last result must be error type
+		if !funcResult[len(funcResult)-1].IsNil() {
+			result.HasError = true
+			err := funcResult[len(funcResult)-1].Interface().(error)
+			result.Error = err.Error()
+		}
+		result.ReturnValues = make([]*ResultValue, len(funcResult)-1)
+		for i := 0; i < len(result.ReturnValues); i++ {
+			val := funcResult[i].Interface()
+			result.ReturnValues[i] = &ResultValue{
+				Type:  reflect.TypeOf(val).String(),
+				Value: val,
+			}
+		}
+		if resultBytes, err := encode(result); err != nil {
+			panicIf(err)
+		} else {
+			panicIf(t.backend.SetResult(msg.TaskId, resultBytes))
+		}
 	}
 }
 

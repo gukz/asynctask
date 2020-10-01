@@ -30,14 +30,12 @@ func (t *redisBackend) CheckHealth() bool {
 	_, err := t.redisclient.Ping().Result()
 	return err == nil
 }
-func (t *redisBackend) SetResult(taskId string, result interface{}) error {
-	// TODO Set proper result
-	// res := t.redisclient.Set(t.keyPrefix+taskId, result, t.backendTTL)
-	// fmt.Println(res.Err())
-	return nil
+func (t *redisBackend) SetResult(taskId string, result []byte) error {
+	res := t.redisclient.Set(t.keyPrefix+taskId, result, t.backendTTL)
+	return res.Err()
 }
 
-func (t *redisBackend) GetResult(taskId string) (interface{}, error) {
+func (t *redisBackend) GetResult(taskId string) ([]byte, error) {
 	res := t.redisclient.Get(t.keyPrefix + taskId)
-	return res.Val, res.Err()
+	return res.Bytes()
 }

@@ -1,7 +1,6 @@
 package redis
 
 import (
-	"fmt"
 	"github.com/go-redis/redis"
 	"github.com/gukz/asynctask"
 	"time"
@@ -30,7 +29,6 @@ func (b *redisBroker) CheckHealth() bool {
 }
 
 func (b *redisBroker) AckMessage(queue string, taskId string) error {
-	fmt.Printf("Ack taskId: %s in queue: %s", taskId, queue)
 	return nil
 }
 

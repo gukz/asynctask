@@ -36,6 +36,24 @@ func panicIf(err error) {
 	}
 }
 
+type asyncBase struct {
+	queue   string
+	backend Backend
+	broker  Broker
+}
+
+func NewAsyncTask(queue string, broker Broker, backend Backend) *asyncBase {
+	return &asyncBase{queue: queue, broker: broker, backend: backend}
+}
+
+func (t *asyncBase) GetWorker() *worker {
+	return &worker{asyncBase: t}
+}
+
+func (t *asyncBase) GetProducer() *producer {
+	return &producer{asyncBase: t}
+}
+
 func encode(value interface{}) ([]byte, error) {
 	jsonBytes, err := msgpack.Marshal(&value)
 	if err != nil {
