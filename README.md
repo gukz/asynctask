@@ -8,4 +8,6 @@
     > restore the message handle result
 
 ## TODO
-- 配置读取
+- More ways to config backend and broker(ENV, config yml e.g.)
+- Add support for delay task
+- Add support for periodic task

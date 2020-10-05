@@ -7,7 +7,7 @@ import (
 const NoResultFound string = "No errors found"
 
 type producer struct {
-	*asyncBase
+	*AsyncBase
 }
 
 func (t *producer) CheckHealth() bool {

@@ -36,22 +36,22 @@ func panicIf(err error) {
 	}
 }
 
-type asyncBase struct {
+type AsyncBase struct {
 	queue   string
 	backend Backend
 	broker  Broker
 }
 
-func NewAsyncTask(queue string, broker Broker, backend Backend) *asyncBase {
-	return &asyncBase{queue: queue, broker: broker, backend: backend}
+func NewAsyncTask(queue string, broker Broker, backend Backend) *AsyncBase {
+	return &AsyncBase{queue: queue, broker: broker, backend: backend}
 }
 
-func (t *asyncBase) GetWorker() *worker {
-	return &worker{asyncBase: t}
+func (t *AsyncBase) GetWorker() *worker {
+	return &worker{AsyncBase: t}
 }
 
-func (t *asyncBase) GetProducer() *producer {
-	return &producer{asyncBase: t}
+func (t *AsyncBase) GetProducer() *producer {
+	return &producer{AsyncBase: t}
 }
 
 func encode(value interface{}) ([]byte, error) {

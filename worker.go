@@ -23,11 +23,11 @@ func RegisteHandler(h map[string]interface{}) {
 }
 
 type worker struct {
-	*asyncBase
+	*AsyncBase
 }
 
-func (t *worker) consume(message []byte, errorMsg chan interface{}) {
-	if len(message) == 0 {
+func (t *worker) consume(message *BrokerMessage, errorMsg chan interface{}) {
+	if len(message.Body) == 0 {
 		return
 	}
 	defer func() {
@@ -36,10 +36,9 @@ func (t *worker) consume(message []byte, errorMsg chan interface{}) {
 		}
 	}()
 	msg := Message{Args: []TypeValue{}}
-	panicIf(decode(message, &msg))
+	panicIf(decode(message.Body, &msg))
 	if handler, ok := handlers[msg.Name]; ok {
-		t.broker.AckMessage(t.queue, msg.TaskId)
-
+		t.broker.AckMessage(t.queue, message.Id)
 		handlerFunc := reflect.ValueOf(handler)
 		params := TypeValue2ReflectValue(msg.Args)
 		funcResult := handlerFunc.Call(params)
@@ -74,7 +73,7 @@ func (t *worker) CheckHealth() bool {
 }
 
 func (t *worker) Serve(concurrency int) {
-	quit := make(chan os.Signal, 1) // 什么时候使用缓冲区，什么时候不使用
+	quit := make(chan os.Signal, 1) // really need chan here?
 	signal.Notify(quit, os.Interrupt, os.Kill)
 
 	var wg sync.WaitGroup
@@ -95,7 +94,7 @@ func (t *worker) Serve(concurrency int) {
 			}
 		}
 	}()
-	msgPool := make(chan []byte, concurrency)
+	msgPool := make(chan *BrokerMessage, concurrency)
 	go func() {
 		for {
 			select {
@@ -103,8 +102,10 @@ func (t *worker) Serve(concurrency int) {
 				close(msgPool)
 				return
 			default:
-				msg := t.broker.PopMessage(t.queue)
-				if msg != nil {
+				msg, err := t.broker.PopMessage(t.queue)
+				if err != nil {
+					errorMsg <- err
+				} else if msg != nil {
 					msgPool <- msg
 				}
 			}

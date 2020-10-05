@@ -6,6 +6,7 @@ require (
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/google/uuid v1.1.1
 	github.com/onsi/ginkgo v1.14.0 // indirect
+	github.com/streadway/amqp v1.0.0
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
 	google.golang.org/appengine v1.6.6 // indirect
 )

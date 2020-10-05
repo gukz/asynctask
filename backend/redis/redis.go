@@ -2,7 +2,6 @@ package redis
 
 import (
 	"time"
-
 	"github.com/go-redis/redis"
 	"github.com/gukz/asynctask"
 )
@@ -15,13 +14,8 @@ type redisBackend struct {
 	backendTTL  time.Duration
 }
 
-func NewBackend(host string, password string, dbNum int, keyPrefix string, ttl time.Duration) (asynctask.Backend, error) {
-	t := &redisBackend{keyPrefix: keyPrefix, backendTTL: ttl}
-	t.redisclient = redis.NewClient(&redis.Options{
-		Addr:     host,
-		Password: password,
-		DB:       dbNum,
-	})
+func NewBackend(client *redis.Client, keyPrefix string, ttl time.Duration) (asynctask.Backend, error) {
+    t := &redisBackend{redisclient: client, keyPrefix: keyPrefix, backendTTL: ttl}
 	_, err := t.redisclient.Ping().Result()
 	return t, err
 }
@@ -38,4 +32,8 @@ func (t *redisBackend) SetResult(taskId string, result []byte) error {
 func (t *redisBackend) GetResult(taskId string) ([]byte, error) {
 	res := t.redisclient.Get(t.keyPrefix + taskId)
 	return res.Bytes()
+}
+
+func (t *redisBackend) Close() error {
+	return t.redisclient.Close()
 }

@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/go-redis/redis"
 	"github.com/gukz/asynctask"
 	rBackend "github.com/gukz/asynctask/backend/redis"
+	mqBroker "github.com/gukz/asynctask/broker/amqp"
 	rBroker "github.com/gukz/asynctask/broker/redis"
 	"time"
 )
@@ -17,13 +19,40 @@ func init() {
 }
 
 func main() {
-	redisHost := "127.0.0.1:6379"
-	redisPassword := ""
-	redisDbNum := 0
+	test_mq()
+	test_redis()
+}
+
+func test_mq() {
 	queue := "Main_async_queue"
-	backend, _ := rBackend.NewBackend(redisHost, redisPassword, redisDbNum, "", 10*time.Minute)
-	broker, _ := rBroker.NewBroker(redisHost, redisPassword, redisDbNum)
+	broker, err := mqBroker.NewBroker("", "", "", "")
+	if err != nil {
+		panic(err)
+	}
+	client := redis.NewClient(&redis.Options{
+		Addr:     "127.0.0.1:6379",
+		Password: "",
+		DB:       0,
+	})
+	backend, _ := rBackend.NewBackend(client, "backend_", 10*time.Minute)
 	asyncBase := asynctask.NewAsyncTask(queue, broker, backend)
+	test_base(asyncBase)
+}
+
+func test_redis() {
+	client := redis.NewClient(&redis.Options{
+		Addr:     "127.0.0.1:6379",
+		Password: "",
+		DB:       0,
+	})
+	queue := "Main_async_queue"
+	backend, _ := rBackend.NewBackend(client, "backend_", 10*time.Minute)
+	broker, _ := rBroker.NewBroker(client, "broker_")
+	asyncBase := asynctask.NewAsyncTask(queue, broker, backend)
+	test_base(asyncBase)
+}
+
+func test_base(asyncBase *asynctask.AsyncBase) {
 	worker := asyncBase.GetWorker()
 	producer := asyncBase.GetProducer()
 	var a = 1

@@ -5,4 +5,5 @@ type Backend interface {
 	CheckHealth() bool
 	SetResult(taskId string, result []byte) error
 	GetResult(taskId string) ([]byte, error)
+	Close() error
 }
